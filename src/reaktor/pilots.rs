@@ -3,7 +3,16 @@ use serde::{Deserialize, Serialize};
 
 use super::PILOTS_ENDPOINT;
 
-#[derive(Debug, Serialize, Deserialize)]
+pub async fn get_pilot(drone_serial_number: &String) -> Result<Pilot> {
+    let url = format!("{PILOTS_ENDPOINT}/{drone_serial_number}");
+    let response = reqwest::get(url).await?;
+    let json = response.text().await?;
+    let pilot = serde_json::from_str(&json)?;
+
+    Ok(pilot)
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Pilot {
     #[serde(alias = "pilotId")]
     pub pilot_id: String,
@@ -16,15 +25,4 @@ pub struct Pilot {
     #[serde(alias = "createdDt")]
     pub created_date: String,
     pub email: String,
-}
-
-pub async fn get_pilot(drone_serial_number: &String) -> Result<Pilot> {
-    let url = format!("{PILOTS_ENDPOINT}/{drone_serial_number}");
-    let response = reqwest::get(url).await?;
-
-    let json = response.text().await?;
-
-    let doc = serde_json::from_str(&json)?;
-
-    Ok(doc)
 }
