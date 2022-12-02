@@ -15,8 +15,11 @@ mod reaktor;
 #[tokio::main]
 async fn main() {
     loop {
-        record_infringements().await.unwrap();
-        thread::sleep(Duration::from_secs(4));
+        println!("tick!");
+        tokio::spawn(async {
+            record_infringements().await.unwrap();
+        });
+        thread::sleep(Duration::from_secs(2));
     }
 }
 
