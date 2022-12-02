@@ -6,6 +6,8 @@ edition = "2021"
 [dependencies]
 anyhow = "1.0"
 futures = "0.3.25"
+lazy_static = "1.4.0"
+moka = { version = "0.9.6", features = ["future"] }
 quick-xml = { version = "0.26", features = ["serde", "serialize"] }
 rayon = "1.6.0"
 reqwest = "0.11"

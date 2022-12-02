@@ -1,3 +1,5 @@
+use std::{thread, time::Duration};
+
 use anyhow::Result;
 use futures::future;
 use ndz::{get_drone_distance_to_ndz, NDZ_MIN_ALLOWED_DISTANCE};
@@ -5,16 +7,28 @@ use rayon::prelude::{IntoParallelRefIterator, ParallelIterator};
 use reaktor::{drones::Drone, pilots::Pilot};
 use serde::{Deserialize, Serialize};
 
+mod cache;
+use cache::INFRINGEMENTS;
 mod ndz;
 mod reaktor;
 
 #[tokio::main]
 async fn main() {
-    let infringements = get_infringin_pilots().await.unwrap();
-    println!("ID\t\tDISTANCE");
-    infringements
-        .iter()
-        .for_each(|i| println!("{}\t{}", i.pilot.as_ref().unwrap().pilot_id, i.distance));
+    loop {
+        record_infringements().await.unwrap();
+        thread::sleep(Duration::from_secs(4));
+    }
+}
+
+async fn record_infringements() -> Result<()> {
+    let infringements = get_infringin_pilots().await?;
+    let cache = INFRINGEMENTS.lock().await;
+    for i in infringements {
+        cache.insert(i.drone_serial_number.clone(), i).await;
+    }
+    println!("{} infringements", cache.entry_count());
+
+    Ok(())
 }
 
 async fn get_infringin_pilots() -> Result<Vec<Infringement>> {
