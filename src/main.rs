@@ -12,15 +12,20 @@ use cache::INFRINGEMENTS;
 mod ndz;
 mod reaktor;
 
+mod server;
+
 #[tokio::main]
 async fn main() {
-    loop {
-        println!("tick!");
-        tokio::spawn(async {
-            record_infringements().await.unwrap();
-        });
-        thread::sleep(Duration::from_secs(2));
-    }
+    tokio::spawn(async {
+        loop {
+            println!("tick!");
+            tokio::spawn(async {
+                record_infringements().await.unwrap();
+            });
+            thread::sleep(Duration::from_secs(2));
+        }
+    });
+    server::start().await.unwrap();
 }
 
 async fn record_infringements() -> Result<()> {
