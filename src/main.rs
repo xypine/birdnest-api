@@ -1,4 +1,4 @@
-use std::{thread, time::Duration};
+use std::time::Duration;
 
 use anyhow::Result;
 use futures::future;
@@ -16,16 +16,18 @@ mod server;
 
 #[tokio::main]
 async fn main() {
-    tokio::spawn(async {
+    let _background_task = tokio::spawn(async {
+        println!("Background task started!");
         loop {
-            println!("tick!");
             tokio::spawn(async {
                 record_infringements().await.unwrap();
             });
-            thread::sleep(Duration::from_secs(2));
+            tokio::time::sleep(Duration::from_secs(2)).await;
         }
     });
     server::start().await.unwrap();
+    // Runs when the server has stopped
+    println!("Bye!");
 }
 
 async fn record_infringements() -> Result<()> {
@@ -34,7 +36,7 @@ async fn record_infringements() -> Result<()> {
     for i in infringements {
         cache.insert(i.drone_serial_number.clone(), i).await;
     }
-    println!("{} infringements", cache.entry_count());
+    //println!("{} infringements", cache.entry_count());
 
     Ok(())
 }
@@ -58,6 +60,9 @@ async fn get_infringin_pilots() -> Result<Vec<Infringement>> {
                 drone_serial_number,
                 pilot,
                 distance: data.distance,
+                x: data.drone.position_x,
+                y: data.drone.position_y,
+                updated_at: chrono::offset::Utc::now().to_rfc3339(),
             }
         })
         .collect();
@@ -75,4 +80,7 @@ pub struct Infringement {
     pub drone_serial_number: String,
     pub pilot: Option<Pilot>,
     pub distance: f64,
+    pub x: f64,
+    pub y: f64,
+    pub updated_at: String,
 }

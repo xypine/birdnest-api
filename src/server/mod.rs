@@ -21,7 +21,7 @@ pub async fn start() -> std::io::Result<()> {
     env_logger::init();
 
     let http_bind = std::env::var("HTTP_BIND").unwrap_or_else(|_| "0.0.0.0:8080".to_string());
-    println!("Starting to listen on {}:...", http_bind);
+    println!("Starting server on {}:...", http_bind);
 
     HttpServer::new(move || {
         App::new()
