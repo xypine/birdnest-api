@@ -34,7 +34,22 @@ async fn record_infringements() -> Result<()> {
     let infringements = get_infringin_pilots().await?;
     let cache = INFRINGEMENTS.lock().await;
     for i in infringements {
-        cache.insert(i.drone_serial_number.clone(), i).await;
+        let key = i.drone_serial_number.clone();
+        match cache.get(&key) {
+            Some(existing) => cache.insert(
+                key,
+                Infringement {
+                    drone_serial_number: existing.drone_serial_number,
+                    pilot: i.pilot,
+                    distance: existing.distance.min(i.distance),
+                    x: i.x,
+                    y: i.y,
+                    updated_at: i.updated_at,
+                },
+            ),
+            None => cache.insert(i.drone_serial_number.clone(), i),
+        }
+        .await;
     }
     //println!("{} infringements", cache.entry_count());
 
