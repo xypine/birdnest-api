@@ -1,15 +1,15 @@
 use std::time::Duration;
 
 use anyhow::Result;
+use config::{get_drone_distance_to_ndz, NDZ_MIN_ALLOWED_DISTANCE};
 use futures::future;
-use ndz::{get_drone_distance_to_ndz, NDZ_MIN_ALLOWED_DISTANCE};
 use rayon::prelude::{IntoParallelRefIterator, ParallelIterator};
 use reaktor::{drones::Drone, pilots::Pilot};
 use serde::{Deserialize, Serialize};
 
 mod cache;
 use cache::INFRINGEMENTS;
-mod ndz;
+mod config;
 mod reaktor;
 
 mod server;
@@ -36,17 +36,25 @@ async fn record_infringements() -> Result<()> {
     for i in infringements {
         let key = i.drone_serial_number.clone();
         match cache.get(&key) {
-            Some(existing) => cache.insert(
-                key,
-                Infringement {
+            Some(existing) => {
+                let new = Infringement {
                     drone_serial_number: existing.drone_serial_number,
                     pilot: i.pilot,
-                    distance: existing.distance.min(i.distance),
-                    x: i.x,
-                    y: i.y,
                     updated_at: i.updated_at,
-                },
-            ),
+                    distance: existing.distance.min(i.distance),
+                    x: if i.distance > existing.distance {
+                        existing.x
+                    } else {
+                        i.x
+                    },
+                    y: if i.distance > existing.distance {
+                        existing.y
+                    } else {
+                        i.y
+                    },
+                };
+                cache.insert(key, new)
+            }
             None => cache.insert(i.drone_serial_number.clone(), i),
         }
         .await;

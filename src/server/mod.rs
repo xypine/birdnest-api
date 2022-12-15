@@ -1,19 +1,47 @@
 use crate::{cache::INFRINGEMENTS, Infringement};
 use actix_cors::Cors;
-use actix_web::{get, http::Error, middleware, App, HttpResponse, HttpServer};
+use actix_web::{get, middleware, App, HttpResponse, HttpServer, Result};
+
 use serde::Serialize;
 
 #[derive(Serialize, Debug)]
-pub struct Greet {
+pub struct InfringementResponse {
     pub infringements: Vec<Infringement>,
 }
 
-#[get("/")]
-async fn greet() -> Result<HttpResponse, Error> {
+#[get("/infringements")]
+async fn get_infridgements() -> Result<HttpResponse> {
     let cache = INFRINGEMENTS.lock().await;
     let infringements: Vec<_> = cache.iter().map(|i| i.1).collect();
-    let out = Greet { infringements };
-    return Ok::<HttpResponse, Error>(HttpResponse::Ok().json(out));
+    let out = InfringementResponse { infringements };
+    return Ok(HttpResponse::Ok().json(out));
+}
+
+#[derive(Serialize, Debug)]
+pub struct DronesResponse {
+    pub x: Vec<f64>,
+    pub y: Vec<f64>,
+    pub serials: Vec<String>,
+}
+
+#[get("/drones")]
+async fn get_drones() -> Result<HttpResponse> {
+    let drones = crate::cache::LATEST_DRONE_SNAPSHOT.lock().await;
+
+    let mut x = vec![];
+    let mut y = vec![];
+    let mut serials = vec![];
+
+    if let Some(drones) = &*drones {
+        for drone in &drones.capture.drone {
+            x.push(drone.position_x);
+            y.push(drone.position_y);
+            serials.push(drone.serial_number.clone());
+        }
+    }
+
+    let out = DronesResponse { x, y, serials };
+    return Ok(HttpResponse::Ok().json(out));
 }
 
 pub async fn start() -> std::io::Result<()> {
@@ -29,7 +57,8 @@ pub async fn start() -> std::io::Result<()> {
             .wrap(Cors::permissive())
             // Enable logger
             .wrap(middleware::Logger::default())
-            .service(greet)
+            .service(get_infridgements)
+            .service(get_drones)
     })
     .bind(http_bind)?
     .run()

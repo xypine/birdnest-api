@@ -6,19 +6,21 @@ use super::DRONES_ENDPOINT;
 pub async fn get_drones() -> Result<DronesDocument> {
     let response = reqwest::get(DRONES_ENDPOINT).await?;
     let xml = response.text().await?;
-    let doc = quick_xml::de::from_str(&xml)?;
+    let doc: DronesDocument = quick_xml::de::from_str(&xml)?;
+
+    *crate::cache::LATEST_DRONE_SNAPSHOT.lock().await = Some(doc.clone());
 
     Ok(doc)
 }
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct DronesDocument {
     #[serde(alias = "deviceInformation")]
     pub device_information: DronesSensorInfo,
     pub capture: DronesCapture,
 }
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct DronesSensorInfo {
     #[serde(alias = "deviceId")]
     pub device_id: String,
@@ -33,7 +35,7 @@ pub struct DronesSensorInfo {
     pub update_interval_ms: usize,
 }
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct DronesCapture {
     #[serde(alias = "snapshotTimestamp")]
     pub snapshot_timestamp: String,
