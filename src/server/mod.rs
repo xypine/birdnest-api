@@ -1,18 +1,34 @@
 use crate::{cache::INFRINGEMENTS, Infringement};
 use actix_cors::Cors;
-use actix_web::{get, middleware, App, HttpResponse, HttpServer, Result};
+use actix_web::{error, get, middleware, web::Query, App, HttpResponse, HttpServer, Result};
 
-use serde::Serialize;
+use chrono::DateTime;
+use serde::{Deserialize, Serialize};
 
+#[derive(Deserialize)]
+struct InfringementParams {
+    min_updated_at: Option<String>,
+}
 #[derive(Serialize, Debug)]
 pub struct InfringementResponse {
     pub infringements: Vec<Infringement>,
 }
 
 #[get("/infringements")]
-async fn get_infridgements() -> Result<HttpResponse> {
+async fn get_infridgements(params: Query<InfringementParams>) -> Result<HttpResponse> {
     let cache = INFRINGEMENTS.lock().await;
-    let infringements: Vec<_> = cache.iter().map(|i| i.1).collect();
+    let mut infringements: Vec<_> = cache.iter().map(|i| i.1).collect();
+    if let Some(min_updated_at_str) = &params.min_updated_at {
+        let min_updated_at = DateTime::parse_from_rfc2822(&min_updated_at_str)
+            .map_err(|e| error::ErrorBadRequest(e.to_string()))?;
+        infringements = infringements
+            .iter()
+            .filter(move |i| {
+                return DateTime::parse_from_rfc2822(&i.updated_at).unwrap() > min_updated_at;
+            })
+            .map(|i| i.clone()) // bad
+            .collect();
+    }
     let out = InfringementResponse { infringements };
     return Ok(HttpResponse::Ok().json(out));
 }
