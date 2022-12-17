@@ -2,12 +2,12 @@ use crate::{cache::INFRINGEMENTS, Infringement};
 use actix_cors::Cors;
 use actix_web::{error, get, middleware, web::Query, App, HttpResponse, HttpServer, Result};
 
-use chrono::DateTime;
+use chrono::{DateTime, NaiveDateTime, Utc};
 use serde::{Deserialize, Serialize};
 
 #[derive(Deserialize)]
 struct InfringementParams {
-    min_updated_at: Option<String>,
+    min_updated_at: Option<i64>,
 }
 #[derive(Serialize, Debug)]
 pub struct InfringementResponse {
@@ -18,13 +18,16 @@ pub struct InfringementResponse {
 async fn get_infridgements(params: Query<InfringementParams>) -> Result<HttpResponse> {
     let cache = INFRINGEMENTS.lock().await;
     let mut infringements: Vec<_> = cache.iter().map(|i| i.1).collect();
-    if let Some(min_updated_at_str) = &params.min_updated_at {
-        let min_updated_at = DateTime::parse_from_rfc2822(&min_updated_at_str)
-            .map_err(|e| error::ErrorBadRequest(e.to_string()))?;
+    if let Some(min_updated_at_timestamp) = &params.min_updated_at {
+        let min_updated_at = DateTime::<Utc>::from_utc(
+            NaiveDateTime::from_timestamp_millis(*min_updated_at_timestamp)
+                .ok_or(error::ErrorBadRequest("invalid timestamp"))?,
+            Utc,
+        );
         infringements = infringements
             .iter()
             .filter(move |i| {
-                return DateTime::parse_from_rfc2822(&i.updated_at).unwrap() > min_updated_at;
+                return DateTime::parse_from_rfc3339(&i.updated_at).unwrap() > min_updated_at;
             })
             .map(|i| i.clone()) // bad
             .collect();
