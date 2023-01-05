@@ -98,7 +98,7 @@ pub struct DroneDistance {
     pub drone: Drone,
     pub distance: f64,
 }
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, paperclip::actix::Apiv2Schema)]
 pub struct Infringement {
     pub drone_serial_number: String,
     pub pilot: Option<Pilot>,

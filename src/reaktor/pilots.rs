@@ -22,7 +22,7 @@ pub async fn get_pilot(drone_serial_number: &String) -> Result<Pilot> {
     }
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, paperclip::actix::Apiv2Schema)]
 pub struct Pilot {
     #[serde(alias = "pilotId")]
     pub pilot_id: String,
