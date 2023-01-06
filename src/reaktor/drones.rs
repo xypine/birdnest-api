@@ -1,16 +1,25 @@
-use anyhow::Result;
+use anyhow::{anyhow, Result};
 use serde::{Deserialize, Serialize};
 
 use super::DRONES_ENDPOINT;
 
 pub async fn get_drones() -> Result<DronesDocument> {
     let response = reqwest::get(DRONES_ENDPOINT).await?;
-    let xml = response.text().await?;
-    let doc: DronesDocument = quick_xml::de::from_str(&xml)?;
+    let status = response.status();
+    if status.is_success() {
+        let xml = response.text().await?;
+        let doc: DronesDocument = quick_xml::de::from_str(&xml)?;
 
-    *crate::cache::LATEST_DRONE_SNAPSHOT.lock().await = Some(doc.clone());
+        *crate::cache::LATEST_DRONE_SNAPSHOT.lock().await = Some(doc.clone());
 
-    Ok(doc)
+        Ok(doc)
+    } else {
+        Err(anyhow!(
+            "Reaktor returned an error while fetching drones: {} ({})",
+            status.as_u16(),
+            status.canonical_reason().unwrap_or("unknown")
+        ))
+    }
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]

@@ -415,7 +415,7 @@ checksum = "9e1b586273c5702936fe7b7d6896644d8be71e6314cfe09d3167c95f712589e8"
 
 [[package]]
 name = "birdnest-api"
-version = "0.6.0"
+version = "0.6.1"
 dependencies = [
  "actix-cors",
  "actix-web",
@@ -1211,6 +1211,7 @@ checksum = "1885e79c1fc4b10f0e172c475f458b7f7b93061064d98c3293e98c5ba0c8b399"
 dependencies = [
  "autocfg",
  "hashbrown",
+ "serde",
 ]
 
 [[package]]
@@ -1485,6 +1486,17 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "6f61fba1741ea2b3d6a1e3178721804bb716a68a6aeba1149b5d52e3d464ea66"
 
 [[package]]
+name = "openapiv3"
+version = "1.0.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "7b1a9f106eb0a780abd17ba9fca8e0843e3461630bcbe2af0ad4d5d3ba4e9aa4"
+dependencies = [
+ "indexmap",
+ "serde",
+ "serde_json",
+]
+
+[[package]]
 name = "openssl"
 version = "0.10.45"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1536,8 +1548,10 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "f399678683ec199ddca1dd54db957dd158dedb5fc90826eb2a7e6c0800c3a868"
 dependencies = [
  "anyhow",
+ "indexmap",
  "itertools",
  "once_cell",
+ "openapiv3",
  "paperclip-actix",
  "paperclip-core",
  "paperclip-macros",
@@ -1562,6 +1576,7 @@ dependencies = [
  "futures",
  "include_dir",
  "once_cell",
+ "openapiv3",
  "paperclip-core",
  "paperclip-macros",
  "parking_lot",
@@ -1576,8 +1591,10 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "0bee516533b655ba63e41e788b49a2beb1139e1eebafb143e7cb56b8cabb5da1"
 dependencies = [
  "actix-web",
+ "indexmap",
  "mime",
  "once_cell",
+ "openapiv3",
  "paperclip-macros",
  "parking_lot",
  "pin-project",

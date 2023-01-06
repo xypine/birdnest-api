@@ -3,6 +3,7 @@ use moka::future::Cache as GenericCache;
 use tokio::sync::Mutex;
 
 use crate::{
+    config::INFRINGEMENT_DURATION,
     reaktor::{drones::DronesDocument, pilots::Pilot},
     Infringement,
 };
@@ -16,7 +17,8 @@ lazy_static! {
     pub static ref INFRINGEMENTS: Mutex<InfringementsCache> = Mutex::new(
         InfringementsCache::builder()
             .max_capacity(10_000)
-            .time_to_live(crate::config::INFRINGEMENT_DURATION)
+            // Infringements are automatically deleted after [INFRINGEMENT_DURATION]
+            .time_to_live(INFRINGEMENT_DURATION)
             .build()
     );
 }

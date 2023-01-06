@@ -17,6 +17,7 @@ struct InfringementParams {
     /// An optional RFC3339 time stamp,
     /// filters out infringements that have not been updated since min_updated_at.
     /// In javascript you can use date.toISOString();
+    #[openapi(example = "2023-01-06T13:45:40.503Z")]
     min_updated_at: Option<String>,
 }
 #[derive(Serialize, Debug, Apiv2Schema)]
@@ -83,6 +84,7 @@ async fn get_drones() -> Result<Json<DronesResponse>, Error> {
 use paperclip::v2::models::DefaultApiRaw;
 use paperclip::v2::models::Info;
 pub async fn start() -> std::io::Result<()> {
+    // Enable logging
     std::env::set_var("RUST_LOG", "actix_web=debug");
     env_logger::init();
 
@@ -110,7 +112,9 @@ pub async fn start() -> std::io::Result<()> {
             .wrap_api_with_spec(spec)
             .service(web::resource("/infringements").route(web::get().to(get_infringements)))
             .service(web::resource("/drones").route(web::get().to(get_drones)))
-            .with_json_spec_at("/openapi.json")
+            // Schema routes
+            .with_json_spec_at("swagger.json")
+            .with_json_spec_v3_at("openapi.json")
             .with_swagger_ui_at("/swagger")
             .with_rapidoc_at("/rapidoc")
             .build()

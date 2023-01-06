@@ -1,4 +1,4 @@
-use anyhow::Result;
+use anyhow::{anyhow, Result};
 use serde::{Deserialize, Serialize};
 
 use super::PILOTS_ENDPOINT;
@@ -12,12 +12,21 @@ pub async fn get_pilot(drone_serial_number: &String) -> Result<Pilot> {
         None => {
             let url = format!("{PILOTS_ENDPOINT}/{drone_serial_number}");
             let response = reqwest::get(url).await?;
-            let json = response.text().await?;
-            let pilot: Pilot = serde_json::from_str(&json)?;
+            let status = response.status();
+            if status.is_success() {
+                let json = response.text().await?;
+                let pilot: Pilot = serde_json::from_str(&json)?;
 
-            cache.insert(key, pilot.clone()).await;
+                cache.insert(key, pilot.clone()).await;
 
-            Ok(pilot)
+                Ok(pilot)
+            } else {
+                Err(anyhow!(
+                    "Reaktor returned an error while fetching pilot details: {} ({})",
+                    status.as_u16(),
+                    status.canonical_reason().unwrap_or("unknown")
+                ))
+            }
         }
     }
 }

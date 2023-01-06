@@ -1,4 +1,9 @@
-use std::time::Duration;
+mod cache;
+mod config;
+mod reaktor;
+mod server;
+
+use cache::INFRINGEMENTS;
 
 use anyhow::Result;
 use config::{get_drone_distance_to_ndz, NDZ_MIN_ALLOWED_DISTANCE};
@@ -6,30 +11,34 @@ use futures::future;
 use rayon::prelude::{IntoParallelRefIterator, ParallelIterator};
 use reaktor::{drones::Drone, pilots::Pilot};
 use serde::{Deserialize, Serialize};
+use std::time::Duration;
 
-mod cache;
-use cache::INFRINGEMENTS;
-mod config;
-mod reaktor;
-
-mod server;
-
+// Tokio is used as the async runtime
 #[tokio::main]
 async fn main() {
-    let _background_task = tokio::spawn(async {
+    // Fetch infringements in the background
+    let background_task = tokio::spawn(async {
         println!("Background task started!");
         loop {
             tokio::spawn(async {
-                record_infringements().await.unwrap();
+                record_infringements()
+                    .await
+                    .expect("Failed to update infringements");
             });
             tokio::time::sleep(Duration::from_secs(2)).await;
         }
     });
-    server::start().await.unwrap();
-    // Runs when the server has stopped
-    println!("Bye!");
+    // Start the api
+    server::start()
+        .await
+        .expect("Faild to start the api server");
+    // Continues once the server has stopped
+    println!("\nThe server has stopped, stopping the background task...");
+    background_task.abort();
+    println!("Everything done, good bye!")
 }
 
+/// Get infringements and save them to [INFRINGEMENTS]
 async fn record_infringements() -> Result<()> {
     let infringements = get_infringin_pilots().await?;
     let cache = INFRINGEMENTS.lock().await;
@@ -69,7 +78,7 @@ async fn get_infringin_pilots() -> Result<Vec<Infringement>> {
     let drones = doc.capture.drone;
     let tasks: Vec<_> = drones
         .par_iter()
-        .map(|drone| DroneDistance {
+        .map(|drone| DroneWithDistance {
             drone: drone.clone(),
             distance: get_drone_distance_to_ndz(drone),
         })
@@ -93,8 +102,8 @@ async fn get_infringin_pilots() -> Result<Vec<Infringement>> {
     Ok(future::join_all(tasks).await)
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct DroneDistance {
+#[derive(Debug, Clone)]
+pub struct DroneWithDistance {
     pub drone: Drone,
     pub distance: f64,
 }

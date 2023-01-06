@@ -1,7 +1,9 @@
 [package]
 name = "birdnest-api"
-version = "0.6.0"
+version = "0.6.1"
 edition = "2021"
+authors = ["Elias Eskelinen <elias.eskelinen@pm.me>"]
+repository = "https://github.com/xypine/birdnest-api"
 
 [dependencies]
 actix-web = "4"
@@ -18,5 +20,10 @@ serde = { version = "1.0", features = ["derive"] }
 serde_json = "1.0.89"
 tokio = { version = "1.22", features = ["full"] }
 chrono = "0.4.23"
-paperclip = { version = "0.7.1", features = ["actix4", "swagger-ui", "rapidoc"] }
+paperclip = { version = "0.7.1", features = ["actix4", "swagger-ui", "rapidoc", "v3"] }
 actix-web-lab = "0.18.9"
+
+[profile.release]
+strip = true  # Automatically strip symbols from the binary.
+lto = true # Enable link-time optimizations
+opt-level = 3 # All optimizations
