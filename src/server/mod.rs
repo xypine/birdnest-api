@@ -3,7 +3,7 @@ use actix_cors::Cors;
 use actix_web::{error, middleware, App, Error, HttpServer};
 use actix_web_lab::web as web_lab;
 
-use chrono::{DateTime, NaiveDateTime, Utc};
+use chrono::DateTime;
 use serde::{Deserialize, Serialize};
 
 use paperclip::actix::{
@@ -14,9 +14,10 @@ use paperclip::actix::{
 
 #[derive(Deserialize, Apiv2Schema)]
 struct InfringementParams {
-    /// Unix time stamp, optional
+    /// RFC3339 time stamp, optional
     /// Filters out infringements that have not been updated since min_updated_at
-    min_updated_at: Option<i64>,
+    /// In javascript you can use date.toISOString();
+    min_updated_at: Option<String>,
 }
 #[derive(Serialize, Debug, Apiv2Schema)]
 pub struct InfringementResponse {
@@ -31,15 +32,14 @@ async fn get_infringements(
     let cache = INFRINGEMENTS.lock().await;
     let mut infringements: Vec<_> = cache.iter().map(|i| i.1).collect();
     if let Some(min_updated_at_timestamp) = &params.min_updated_at {
-        let min_updated_at = DateTime::<Utc>::from_utc(
-            NaiveDateTime::from_timestamp_millis(*min_updated_at_timestamp)
-                .ok_or(error::ErrorBadRequest("invalid timestamp"))?,
-            Utc,
-        );
+        let min_updated_at = DateTime::parse_from_rfc3339(min_updated_at_timestamp)
+            .map_err(|e| error::ErrorBadRequest(e))?;
         infringements = infringements
             .iter()
             .filter(move |i| {
-                return DateTime::parse_from_rfc3339(&i.updated_at).unwrap() > min_updated_at;
+                return DateTime::parse_from_rfc3339(&i.updated_at)
+                    .expect("Failed to parse server-created time string")
+                    > min_updated_at;
             })
             .map(|i| i.clone()) // bad
             .collect();
