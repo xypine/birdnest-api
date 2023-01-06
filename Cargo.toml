@@ -6,22 +6,33 @@ authors = ["Elias Eskelinen <elias.eskelinen@pm.me>"]
 repository = "https://github.com/xypine/birdnest-api"
 
 [dependencies]
+# Main http server and middleware
 actix-web = "4"
 actix-cors = "0.6.3"
-env_logger = "0.9.1"
-anyhow = "1.0"
-futures = "0.3.25"
-lazy_static = "1.4.0"
-moka = { version = "0.9.6", features = ["future"] }
-quick-xml = { version = "0.26", features = ["serde", "serialize"] }
-rayon = "1.6.0"
+actix-web-lab = "0.18.9"
+# Library used for making http requests
 reqwest = "0.11"
+# XML parser
+quick-xml = { version = "0.26", features = ["serde", "serialize"] }
+# Convenient error handling
+anyhow = "1.0"
+# Easy global variables
+lazy_static = "1.4.0"
+# Cache implementation
+moka = { version = "0.9.6", features = ["future"] }
+# OpenApi implementation
+paperclip = { version = "0.7.1", features = ["actix4", "swagger-ui", "rapidoc", "v3"] }
+# Automatic parallelization
+rayon = "1.6.0"
+# Serialization and deserialization
 serde = { version = "1.0", features = ["derive"] }
 serde_json = "1.0.89"
+# Async runtime
 tokio = { version = "1.22", features = ["full"] }
+# Misc utilities
+env_logger = "0.9.1"
+futures = "0.3.25"
 chrono = "0.4.23"
-paperclip = { version = "0.7.1", features = ["actix4", "swagger-ui", "rapidoc", "v3"] }
-actix-web-lab = "0.18.9"
 
 [profile.release]
 strip = true  # Automatically strip symbols from the binary.
