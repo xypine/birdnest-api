@@ -14,8 +14,8 @@ use paperclip::actix::{
 
 #[derive(Deserialize, Apiv2Schema)]
 struct InfringementParams {
-    /// RFC3339 time stamp, optional
-    /// Filters out infringements that have not been updated since min_updated_at
+    /// An optional RFC3339 time stamp,
+    /// filters out infringements that have not been updated since min_updated_at.
     /// In javascript you can use date.toISOString();
     min_updated_at: Option<String>,
 }
@@ -80,6 +80,8 @@ async fn get_drones() -> Result<Json<DronesResponse>, Error> {
     return Ok(Json(out));
 }
 
+use paperclip::v2::models::DefaultApiRaw;
+use paperclip::v2::models::Info;
 pub async fn start() -> std::io::Result<()> {
     std::env::set_var("RUST_LOG", "actix_web=debug");
     env_logger::init();
@@ -88,17 +90,29 @@ pub async fn start() -> std::io::Result<()> {
     println!("Starting server on http://{}:...", http_bind);
 
     HttpServer::new(move || {
+        let mut spec = DefaultApiRaw::default();
+        // Insert package metadata
+        spec.info = Info {
+            version: env!("CARGO_PKG_VERSION").to_string(),
+            title: env!("CARGO_PKG_NAME").to_string(),
+            description: Some(env!("CARGO_PKG_DESCRIPTION").to_string()),
+            ..Default::default()
+        };
+        // Build the api
         App::new()
             // Enable CORS
             .wrap(Cors::permissive())
             // Enable logger
             .wrap(middleware::Logger::default())
+            // Redirect / to /swagger
             .service(web_lab::Redirect::new("/", "/swagger"))
-            .wrap_api()
+            // Init routes with openapi
+            .wrap_api_with_spec(spec)
             .service(web::resource("/infringements").route(web::get().to(get_infringements)))
             .service(web::resource("/drones").route(web::get().to(get_drones)))
             .with_json_spec_at("/openapi.json")
             .with_swagger_ui_at("/swagger")
+            .with_rapidoc_at("/rapidoc")
             .build()
     })
     .bind(http_bind)?
