@@ -4,6 +4,7 @@ use actix_web::{error, middleware, App, Error, HttpServer};
 use actix_web_lab::web as web_lab;
 
 use chrono::DateTime;
+use log::info;
 use serde::{Deserialize, Serialize};
 
 use paperclip::actix::{
@@ -84,12 +85,8 @@ async fn get_drones() -> Result<Json<DronesResponse>, Error> {
 use paperclip::v2::models::DefaultApiRaw;
 use paperclip::v2::models::Info;
 pub async fn start() -> std::io::Result<()> {
-    // Enable logging
-    std::env::set_var("RUST_LOG", "actix_web=debug");
-    env_logger::init();
-
     let http_bind = std::env::var("HTTP_BIND").unwrap_or_else(|_| "0.0.0.0:8080".to_string());
-    println!("Starting server on http://{}:...", http_bind);
+    info!("Starting server on http://{}:...", http_bind);
 
     HttpServer::new(move || {
         let mut spec = DefaultApiRaw::default();
@@ -113,7 +110,7 @@ pub async fn start() -> std::io::Result<()> {
             .service(web::resource("/infringements").route(web::get().to(get_infringements)))
             .service(web::resource("/drones").route(web::get().to(get_drones)))
             // Schema routes
-            .with_json_spec_at("swagger.json")
+            .with_json_spec_at("swagger/swagger.json")
             .with_json_spec_v3_at("openapi.json")
             .with_swagger_ui_at("/swagger")
             .with_rapidoc_at("/rapidoc")

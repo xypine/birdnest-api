@@ -8,6 +8,7 @@ use cache::INFRINGEMENTS;
 use anyhow::Result;
 use config::{get_drone_distance_to_ndz, NDZ_MIN_ALLOWED_DISTANCE};
 use futures::future;
+use log::{debug, error, info, log_enabled, Level};
 use rayon::prelude::{IntoParallelRefIterator, ParallelIterator};
 use reaktor::{drones::Drone, pilots::Pilot};
 use serde::{Deserialize, Serialize};
@@ -16,9 +17,12 @@ use std::time::Duration;
 // Tokio is used as the async runtime
 #[tokio::main]
 async fn main() {
+    // Enable fancier logging
+    std::env::set_var("RUST_LOG", "info");
+    env_logger::init();
     // Fetch infringements in the background
     let background_task = tokio::spawn(async {
-        println!("Background task started!");
+        info!("Background task started!");
         loop {
             tokio::spawn(async {
                 record_infringements()
@@ -31,11 +35,11 @@ async fn main() {
     // Start the api
     server::start()
         .await
-        .expect("Faild to start the api server");
+        .expect("Failed to start the api server");
     // Continues once the server has stopped
-    println!("\nThe server has stopped, stopping the background task...");
+    info!("The server has stopped, stopping the background task...");
     background_task.abort();
-    println!("Everything done, good bye!")
+    info!("Everything done, bye!")
 }
 
 /// Get infringements and save them to [INFRINGEMENTS]
@@ -68,7 +72,10 @@ async fn record_infringements() -> Result<()> {
         }
         .await;
     }
-    //println!("{} infringements", cache.entry_count());
+    debug!(
+        "{} infringements in the last 10 minutes",
+        cache.entry_count()
+    );
 
     Ok(())
 }

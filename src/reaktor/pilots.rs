@@ -3,6 +3,7 @@ use serde::{Deserialize, Serialize};
 
 use super::PILOTS_ENDPOINT;
 use crate::cache::PILOT_CACHE;
+use log::{debug, error, info, log_enabled, Level};
 
 pub async fn get_pilot(drone_serial_number: &String) -> Result<Pilot> {
     let key = drone_serial_number.clone();
@@ -10,6 +11,7 @@ pub async fn get_pilot(drone_serial_number: &String) -> Result<Pilot> {
     match cache.get(&key) {
         Some(pilot) => Ok(pilot),
         None => {
+            info!("Fetching pilot details for drone {drone_serial_number}");
             let url = format!("{PILOTS_ENDPOINT}/{drone_serial_number}");
             let response = reqwest::get(url).await?;
             let status = response.status();
