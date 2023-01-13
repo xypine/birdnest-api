@@ -13,6 +13,17 @@ use paperclip::actix::{
     Apiv2Schema, OpenApiExt,
 };
 
+#[derive(Serialize, Debug, Apiv2Schema)]
+pub struct MetaResponse {
+    pub version: String,
+}
+#[api_v2_operation(summary = "Get information about this instance", tags(meta))]
+async fn meta() -> Json<MetaResponse> {
+    Json(MetaResponse {
+        version: env!("CARGO_PKG_VERSION").to_string(),
+    })
+}
+
 #[derive(Deserialize, Apiv2Schema)]
 struct InfringementParams {
     /// An optional RFC3339 time stamp,
@@ -26,8 +37,10 @@ pub struct InfringementResponse {
     pub infringements: Vec<Infringement>,
 }
 
-#[api_v2_operation]
-/// Provides a list of recent infringements.
+#[api_v2_operation(
+    summary = "List of recent infringements",
+    description = "Use min_updated_at to filter older results, infringements are only stored for 10 minutes"
+)]
 async fn get_infringements(
     params: Query<InfringementParams>,
 ) -> Result<Json<InfringementResponse>, Error> {
@@ -60,9 +73,10 @@ pub struct DronesResponse {
     pub serials: Vec<String>,
 }
 
-#[api_v2_operation]
-/// Lists properties of drones currently within the sensors range.
-/// The n:th index in every array belongs to the same drone
+#[api_v2_operation(
+    summary = "Drones currently within the sensors range",
+    description = "The n:th index in every array belongs to the same drone"
+)]
 async fn get_drones() -> Result<Json<DronesResponse>, Error> {
     let drones = crate::cache::LATEST_DRONE_SNAPSHOT.lock().await;
 
@@ -109,9 +123,10 @@ pub async fn start() -> std::io::Result<()> {
             .wrap_api_with_spec(spec)
             .service(web::resource("/infringements").route(web::get().to(get_infringements)))
             .service(web::resource("/drones").route(web::get().to(get_drones)))
+            .service(web::resource("/meta").route(web::get().to(meta)))
             // Schema routes
-            .with_json_spec_at("swagger/swagger.json")
-            .with_json_spec_v3_at("openapi.json")
+            .with_json_spec_at("/swagger.json")
+            .with_json_spec_v3_at("/openapi.json")
             .with_swagger_ui_at("/swagger")
             .with_rapidoc_at("/rapidoc")
             .build()
