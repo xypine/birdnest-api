@@ -3,7 +3,7 @@ use serde::{Deserialize, Serialize};
 
 use super::PILOTS_ENDPOINT;
 use crate::cache::PILOT_CACHE;
-use log::{debug, error, info, log_enabled, Level};
+use log::info;
 
 pub async fn get_pilot(drone_serial_number: &String) -> Result<Pilot> {
     let key = drone_serial_number.clone();

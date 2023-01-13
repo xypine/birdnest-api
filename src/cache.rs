@@ -14,6 +14,7 @@ lazy_static! {
     pub static ref LATEST_DRONE_SNAPSHOT: Mutex<Option<DronesDocument>> = Mutex::new(None);
     pub static ref PILOT_CACHE: Mutex<PilotCache> =
         Mutex::new(PilotCache::builder().max_capacity(10_000).build());
+    /// Stores infringements for 10 minutes
     pub static ref INFRINGEMENTS: Mutex<InfringementsCache> = Mutex::new(
         InfringementsCache::builder()
             .max_capacity(10_000)
