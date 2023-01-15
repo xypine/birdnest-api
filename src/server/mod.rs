@@ -118,14 +118,17 @@ pub async fn start() -> std::io::Result<()> {
             // Enable logger
             .wrap(middleware::Logger::default())
             // Redirect / to /swagger
-            .service(web_lab::Redirect::new("/", "/swagger"))
+            .service(web_lab::Redirect::new(
+                "/",
+                "/swagger/index.html?url=/openapi.json",
+            ))
             // Init routes with openapi
             .wrap_api_with_spec(spec)
             .service(web::resource("/infringements").route(web::get().to(get_infringements)))
             .service(web::resource("/drones").route(web::get().to(get_drones)))
             .service(web::resource("/meta").route(web::get().to(meta)))
             // Schema routes
-            .with_json_spec_at("/swagger.json")
+            .with_json_spec_at("swagger.json")
             .with_json_spec_v3_at("/openapi.json")
             .with_swagger_ui_at("/swagger")
             .with_rapidoc_at("/rapidoc")
