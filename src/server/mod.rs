@@ -128,7 +128,7 @@ pub async fn start() -> std::io::Result<()> {
             .service(web::resource("/drones").route(web::get().to(get_drones)))
             .service(web::resource("/meta").route(web::get().to(meta)))
             // Schema routes
-            .with_json_spec_at("swagger.json")
+            .with_json_spec_at("/swagger.json")
             .with_json_spec_v3_at("/openapi.json")
             .with_swagger_ui_at("/swagger")
             .with_rapidoc_at("/rapidoc")

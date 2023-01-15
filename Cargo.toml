@@ -21,7 +21,7 @@ lazy_static = "1.4.0"
 # Cache implementation
 moka = { version = "0.9.6", features = ["future"] }
 # OpenApi implementation
-paperclip = { version = "0.7.1", features = ["actix4", "swagger-ui", "rapidoc", "v3"] }
+paperclip = { version = "0.8", features = ["actix4", "swagger-ui", "rapidoc", "v3"] }
 # Automatic parallelization
 rayon = "1.6.0"
 # Serialization and deserialization
