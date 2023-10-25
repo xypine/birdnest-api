@@ -1,8 +1,10 @@
-use anyhow::{anyhow, Result};
+use anyhow::{anyhow, Context, Result};
 use serde::{Deserialize, Serialize};
 
 use super::PILOTS_ENDPOINT;
 use crate::cache::PILOT_CACHE;
+use crate::features::replay::{get_replay_status, load_replay_pilots, ReplayStatus};
+
 use log::info;
 
 pub async fn get_pilot(drone_serial_number: &String) -> Result<Pilot> {
@@ -11,6 +13,16 @@ pub async fn get_pilot(drone_serial_number: &String) -> Result<Pilot> {
     match cache.get(&key) {
         Some(pilot) => Ok(pilot),
         None => {
+            if get_replay_status() == ReplayStatus::Replaying {
+                let saved = load_replay_pilots();
+                info!("Fetching pilot for drone {key} from replay");
+                let pilot = saved
+                    .get(&key)
+                    .context("Pilot not found in replay")?
+                    .clone();
+                cache.insert(key, pilot.clone()).await;
+                return Ok(pilot);
+            }
             info!("Fetching pilot details for drone {drone_serial_number}");
             let url = format!("{PILOTS_ENDPOINT}/{drone_serial_number}");
             let response = reqwest::get(url).await?;
@@ -21,7 +33,11 @@ pub async fn get_pilot(drone_serial_number: &String) -> Result<Pilot> {
 
                 cache.insert(key, pilot.clone()).await;
 
+                std::mem::drop(cache); // avoid deadlocks
+                crate::features::replay::save_replay_pilots().await;
+
                 Ok(pilot)
+                // without the manual drop, the lock would only be released here
             } else {
                 Err(anyhow!(
                     "Reaktor returned an error while fetching pilot details: {} ({})",
@@ -33,7 +49,7 @@ pub async fn get_pilot(drone_serial_number: &String) -> Result<Pilot> {
     }
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize, paperclip::actix::Apiv2Schema)]
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, paperclip::actix::Apiv2Schema)]
 pub struct Pilot {
     #[serde(alias = "pilotId")]
     pub pilot_id: String,

@@ -2,6 +2,8 @@ pub mod cache;
 pub mod config;
 pub mod reaktor;
 pub mod server;
+// optional features
+pub mod features;
 
 pub mod prelude {
     pub use crate::cache;

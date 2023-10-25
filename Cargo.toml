@@ -1,6 +1,6 @@
 [package]
 name = "birdnest-api"
-version = "0.8.1"
+version = "0.9.0"
 edition = "2021"
 authors = ["Elias Eskelinen <elias.eskelinen@pm.me>"]
 repository = "https://github.com/xypine/birdnest-api"
@@ -8,34 +8,42 @@ repository = "https://github.com/xypine/birdnest-api"
 [dependencies]
 # Main http server and middleware
 actix-web = "4"
-actix-cors = "0.6.3"
-actix-web-lab = "0.18.9"
+actix-cors = "0.6"
+actix-web-lab = "0.19"
 # Library used for making http requests
 reqwest = "0.11"
 # XML parser
-quick-xml = { version = "0.26", features = ["serde", "serialize"] }
+quick-xml = { version = "0.29", features = ["serde", "serialize"] }
 # Convenient error handling
 anyhow = "1.0"
 # Easy global variables
-lazy_static = "1.4.0"
+lazy_static = "1.4"
 # Cache implementation
-moka = { version = "0.9.6", features = ["future"] }
+moka = { version = "0.11", features = ["future"] }
 # OpenApi implementation
-paperclip = { version = "0.8", features = ["actix4", "swagger-ui", "rapidoc", "v3"] }
+paperclip = { version = "0.8", features = [
+    "actix4",
+    "swagger-ui",
+    "rapidoc",
+    "v3",
+] }
 # Automatic parallelization
-rayon = "1.6.0"
+rayon = "1.7.0"
 # Serialization and deserialization
 serde = { version = "1.0", features = ["derive"] }
-serde_json = "1.0.89"
+serde_json = "1.0"
 # Async runtime
-tokio = { version = "1.22", features = ["full"] }
+tokio = { version = "1.29", features = ["full"] }
 # Misc utilities
-env_logger = "0.9.1"
-futures = "0.3.25"
-chrono = "0.4.23"
-log = "0.4.17"
+env_logger = "0.10"
+futures = "0.3"
+chrono = "0.4"
+log = "0.4"
+
+[features]
+default = []
 
 [profile.release]
 strip = true  # Automatically strip symbols from the binary.
-lto = true # Enable link-time optimizations
+lto = true    # Enable link-time optimizations
 opt-level = 3 # All optimizations

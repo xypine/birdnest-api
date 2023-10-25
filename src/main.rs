@@ -7,8 +7,12 @@ use birdnest_api::prelude::{record_infringements, server};
 // Tokio is used as the async runtime
 #[tokio::main]
 async fn main() {
+    println!("Starting the Birdnest API server");
+    println!("Tip: use --record to record data and --replay to replay the recorded data");
     // Enable fancier logging
-    std::env::set_var("RUST_LOG", "info");
+    if std::env::var("RUST_LOG").is_err() {
+        std::env::set_var("RUST_LOG", "info");
+    }
     env_logger::init();
     // Fetch infringements in the background
     let background_task = tokio::spawn(async {

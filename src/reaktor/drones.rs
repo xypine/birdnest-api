@@ -1,9 +1,30 @@
 use anyhow::{anyhow, Result};
+use log::{info, warn};
 use serde::{Deserialize, Serialize};
+
+use crate::features::replay::{get_replay_status, load_replay_drones, ReplayStatus};
 
 use super::DRONES_ENDPOINT;
 
 pub async fn get_drones() -> Result<DronesDocument> {
+    if get_replay_status() == ReplayStatus::Replaying {
+        let history = load_replay_drones().unwrap();
+        let unix_now = chrono::Utc::now().timestamp();
+        let history_len = history.len();
+        // We'll just assume this for now
+        let seconds_between_updates = 2;
+        // We use this to get a deterministic index that is continous over time
+        let index = ((unix_now / seconds_between_updates) % history_len as i64) as usize;
+        info!("Replaying drones from index {} / {}", index, history_len);
+        if index == 0 {
+            warn!("Replaying drones from the beginning, invalidating all previous infringements");
+            let infringements = crate::INFRINGEMENTS.lock().await;
+            infringements.invalidate_all();
+        }
+        let doc = history[index].clone();
+        *crate::cache::LATEST_DRONE_SNAPSHOT.lock().await = Some(doc.clone());
+        return Ok(doc);
+    }
     let response = reqwest::get(DRONES_ENDPOINT).await?;
     let status = response.status();
     if status.is_success() {
@@ -11,6 +32,7 @@ pub async fn get_drones() -> Result<DronesDocument> {
         let doc: DronesDocument = quick_xml::de::from_str(&xml)?;
 
         *crate::cache::LATEST_DRONE_SNAPSHOT.lock().await = Some(doc.clone());
+        crate::features::replay::save(chrono::Utc::now()).await;
 
         Ok(doc)
     } else {
@@ -22,36 +44,36 @@ pub async fn get_drones() -> Result<DronesDocument> {
     }
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 pub struct DronesDocument {
     #[serde(alias = "deviceInformation")]
     pub device_information: DronesSensorInfo,
     pub capture: DronesCapture,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 pub struct DronesSensorInfo {
-    #[serde(alias = "deviceId")]
-    pub device_id: String,
+    #[serde(alias = "@deviceId")]
+    pub device_id: Option<String>,
 
     #[serde(alias = "listenRange")]
-    pub listen_range: usize,
+    pub listen_range: Option<usize>,
     #[serde(alias = "deviceStarted")]
-    pub device_started: String,
+    pub device_started: Option<String>,
     #[serde(alias = "uptimeSeconds")]
-    pub uptime_seconds: usize,
+    pub uptime_seconds: Option<usize>,
     #[serde(alias = "updateIntervalMs")]
-    pub update_interval_ms: usize,
+    pub update_interval_ms: Option<usize>,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 pub struct DronesCapture {
-    #[serde(alias = "snapshotTimestamp")]
+    #[serde(alias = "@snapshotTimestamp")]
     pub snapshot_timestamp: String,
     pub drone: Vec<Drone>,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 pub struct Drone {
     #[serde(alias = "serialNumber")]
     pub serial_number: String,

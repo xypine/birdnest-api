@@ -1,7 +1,8 @@
+use crate::features::replay::{get_replay_status, ReplayStatus};
 use crate::{cache::INFRINGEMENTS, Infringement};
 use actix_cors::Cors;
+use actix_web::web::redirect;
 use actix_web::{error, middleware, App, Error, HttpServer};
-use actix_web_lab::web as web_lab;
 
 use chrono::DateTime;
 use log::info;
@@ -16,11 +17,13 @@ use paperclip::actix::{
 #[derive(Serialize, Debug, Apiv2Schema)]
 pub struct MetaResponse {
     pub version: String,
+    pub replay_status: ReplayStatus,
 }
 #[api_v2_operation(summary = "Get information about this instance", tags(meta))]
 async fn meta() -> Json<MetaResponse> {
     Json(MetaResponse {
         version: env!("CARGO_PKG_VERSION").to_string(),
+        replay_status: get_replay_status(),
     })
 }
 
@@ -46,21 +49,18 @@ async fn get_infringements(
 ) -> Result<Json<InfringementResponse>, Error> {
     let cache = INFRINGEMENTS.lock().await;
     let mut infringements: Vec<_> = cache.iter().map(|i| i.1).collect();
+
+    // Only include infringements that have been updated since min_updated_at
     if let Some(min_updated_at_timestamp) = &params.min_updated_at {
         let min_updated_at = DateTime::parse_from_rfc3339(min_updated_at_timestamp)
-            .map_err(|e| error::ErrorBadRequest(e))?;
-        infringements = infringements
-            .iter()
-            .filter(move |i| {
-                return DateTime::parse_from_rfc3339(&i.updated_at)
-                    .expect("Failed to parse server-created time string")
-                    > min_updated_at;
-            })
-            .map(|i| i.clone()) // bad
-            .collect();
+            .map_err(error::ErrorBadRequest)?;
+        infringements.retain(|i| {
+            DateTime::parse_from_rfc3339(&i.updated_at)
+                .expect("Failed to parse server-created time string")
+                > min_updated_at
+        })
     }
-    let out = InfringementResponse { infringements };
-    return Ok(Json(out));
+    Ok(Json(InfringementResponse { infringements }))
 }
 
 #[derive(Serialize, Debug, Apiv2Schema)]
@@ -92,8 +92,7 @@ async fn get_drones() -> Result<Json<DronesResponse>, Error> {
         }
     }
 
-    let out = DronesResponse { x, y, serials };
-    return Ok(Json(out));
+    Ok(Json(DronesResponse { x, y, serials }))
 }
 
 use paperclip::v2::models::DefaultApiRaw;
@@ -103,12 +102,13 @@ pub async fn start() -> std::io::Result<()> {
     info!("Starting server on http://{}:...", http_bind);
 
     HttpServer::new(move || {
-        let mut spec = DefaultApiRaw::default();
-        // Insert package metadata
-        spec.info = Info {
-            version: env!("CARGO_PKG_VERSION").to_string(),
-            title: env!("CARGO_PKG_NAME").to_string(),
-            description: Some(env!("CARGO_PKG_DESCRIPTION").to_string()),
+        let spec = DefaultApiRaw {
+            info: Info {
+                version: env!("CARGO_PKG_VERSION").to_string(),
+                title: env!("CARGO_PKG_NAME").to_string(),
+                description: Some(env!("CARGO_PKG_DESCRIPTION").to_string()),
+                ..Default::default()
+            },
             ..Default::default()
         };
         // Build the api
@@ -118,10 +118,7 @@ pub async fn start() -> std::io::Result<()> {
             // Enable logger
             .wrap(middleware::Logger::default())
             // Redirect / to /swagger
-            .service(web_lab::Redirect::new(
-                "/",
-                "/swagger/index.html?url=/openapi.json",
-            ))
+            .service(redirect("/", "/swagger/index.html?url=/openapi.json"))
             // Init routes with openapi
             .wrap_api_with_spec(spec)
             .service(web::resource("/infringements").route(web::get().to(get_infringements)))
