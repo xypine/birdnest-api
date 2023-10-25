@@ -19,7 +19,10 @@ COPY . .
 RUN cargo install --path .
 
 # We don't need the Rust toolchain to run the binary!
-FROM gcr.io/distroless/cc-debian11
+FROM gcr.io/distroless/cc-debian12:debug
 
 COPY --from=builder /usr/local/cargo/bin/birdnest-api /app/birdnest-api
-CMD ["/app/birdnest-api"]
+COPY ./replay /app/replay
+# Goto /app directory
+WORKDIR /app
+ENTRYPOINT [ "/app/birdnest-api" ]

@@ -11,6 +11,9 @@ pub async fn get_drones() -> Result<DronesDocument> {
         let history = load_replay_drones().unwrap();
         let unix_now = chrono::Utc::now().timestamp();
         let history_len = history.len();
+        if history_len == 0 {
+            return Err(anyhow!("No drones in replay history"));
+        }
         // We'll just assume this for now
         let seconds_between_updates = 2;
         // We use this to get a deterministic index that is continous over time

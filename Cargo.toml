@@ -9,9 +9,10 @@ repository = "https://github.com/xypine/birdnest-api"
 # Main http server and middleware
 actix-web = "4"
 actix-cors = "0.6"
-actix-web-lab = "0.19"
 # Library used for making http requests
-reqwest = "0.11"
+reqwest = { version = "0.11", default-features = false, features = [
+    "rustls-tls",
+] }
 # XML parser
 quick-xml = { version = "0.29", features = ["serde", "serialize"] }
 # Convenient error handling
